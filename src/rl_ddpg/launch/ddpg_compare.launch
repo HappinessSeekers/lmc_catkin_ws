@@ -1,0 +1,4 @@
+<launch>
+    <node name="track_controller" pkg="rl_ddpg" type="track_controller.py" output="screen"/>
+    <node name="simulation_BLDC_env" pkg="rl_ddpg" type="simulation_BLDC_env.py" output="screen"/>
+</launch>
