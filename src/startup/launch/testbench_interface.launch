@@ -1,0 +1,5 @@
+<launch>
+    <node name="usbcan_driver" pkg="usbcan" type="usbcan_driver" output="screen"/>
+    <node name="angle_reciver" pkg="testbench_interface" type="testbench_interface" output="screen"/>
+    <node name="serial_driver" pkg="drivers" type="serial_driver" output="screen"/>    
+</launch>

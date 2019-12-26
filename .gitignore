@@ -1,8 +1,13 @@
 .vscode/
 .idea/
+devel/
+devel_isolated/
+el/
+el_isolated/
 build/
 results/
 tmp/
 cmake-guild-debug/
 .clang-format
 screen-log*
+4-22.csv

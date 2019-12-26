@@ -41,12 +41,12 @@ void MainWindow::init_variables()
     controlTimer = new QTimer();
     displayTimer = new QTimer();
     //PID controller
-    control->steerwheelMotor_PID_controller->set_Kp(0.5);
-    control->steerwheelMotor_PID_controller->set_Ki(6.0);
+    control->steerwheelMotor_PID_controller->set_Kp(1.2);
+    control->steerwheelMotor_PID_controller->set_Ki(3.0);
     control->steerwheelMotor_PID_controller->set_Kd(0.0);
     control->steerwheelMotor_PID_controller->set_I_limit(6.0);
-    control->roadwheelMotor_PID_controller->set_Kp(0.5);
-    control->roadwheelMotor_PID_controller->set_Ki(6.0);
+    control->roadwheelMotor_PID_controller->set_Kp(1.2);
+    control->roadwheelMotor_PID_controller->set_Ki(3.0);
     control->roadwheelMotor_PID_controller->set_Kd(0.0);
     control->roadwheelMotor_PID_controller->set_I_limit(6.0);
     control->loadMotor_PID_controller->set_Kp(0.25);
@@ -91,30 +91,31 @@ void MainWindow::onDisplayTimerOut() {txt_update();}
 void MainWindow::onControlTimerOut() {
     if (active_function_ptr == NULL) {
         // Do Nothing.
+        system_disable();
     }
     else {
         // Execute function.
         (this->*active_function_ptr)();
-        // Send out message.
-        std_msgs::Float32 loadmotor_cmd_msg;
-        std_msgs::Float32 clutch_cmd_msg;
-        std_msgs::Float32 BLDC0_cmd_msg;
-        std_msgs::Float32 BLDC1_cmd_msg;
-        std_msgs::Float32 matlab_rsps_msg;
-        loadmotor_cmd_msg.data = control->loadmotor_targetforce;
-        loadMotor_pub.publish(loadmotor_cmd_msg);
-        clutch_cmd_msg.data = control->clutch_state;
-        clutch_pub.publish(clutch_cmd_msg);
-        BLDC0_cmd_msg.data = control->BLDC0_current;
-        BLDC0_current_pub.publish(BLDC0_cmd_msg);
-        BLDC1_cmd_msg.data = control->BLDC1_current;
-        BLDC1_current_pub.publish(BLDC1_cmd_msg);
-        matlab_rsps_msg.data = control->BLDC0_current;
-        windows_matlab_response_pub.publish(matlab_rsps_msg);
-        log_new_line("control published");
-        ros::spinOnce();
     }
-    
+    // Send out message.
+    std_msgs::Float32 loadmotor_cmd_msg;
+    std_msgs::Float32 clutch_cmd_msg;
+    std_msgs::Float32 BLDC0_cmd_msg;
+    std_msgs::Float32 BLDC1_cmd_msg;
+    std_msgs::Float32 matlab_rsps_msg;
+    loadmotor_cmd_msg.data = control->loadmotor_targetforce;
+    loadMotor_pub.publish(loadmotor_cmd_msg);
+    clutch_cmd_msg.data = control->clutch_state;
+    clutch_pub.publish(clutch_cmd_msg);
+    BLDC0_cmd_msg.data = control->BLDC0_current;
+    BLDC0_current_pub.publish(BLDC0_cmd_msg);
+    BLDC1_cmd_msg.data = -control->BLDC1_current;
+    BLDC1_current_pub.publish(BLDC1_cmd_msg);
+    matlab_rsps_msg.data = matlab_cmd_reception;
+    windows_matlab_response_pub.publish(matlab_rsps_msg);
+    log_new_line("control published");
+    if (control->ctrl_quit == true) {active_function_ptr = NULL;}
+    ros::spinOnce();
 }
 
 //check if any function is running.
@@ -196,8 +197,12 @@ void Control::stop() {ctrl_quit = true;}
 
 //*********************************** FUNCTIONS ********************************//
 
-void MainWindow::system_disable()
-{}
+void MainWindow::system_disable() {
+    control->BLDC0_current = 0;
+    control->BLDC1_current = 0;
+    control->loadmotor_targetforce = 0;
+    control->clutch_state = false;
+}
 void MainWindow::lowermotor_sine_tuning_demo() {
     double secs =ros::Time::now().toSec();
     float angle_target = 100*sin(0.5 * secs);
@@ -220,8 +225,15 @@ void MainWindow::angle_following_demo() {
     control->loadmotor_targetforce = 0;
     control->clutch_state = true;
 }
-void MainWindow::recover()
-{}
+void MainWindow::recover() {
+    control->BLDC0_current = limitation(control->roadwheelMotor_PID_controller->PID_calculate(0, roadwheel_angle),15);
+    control->BLDC1_current = 0;
+    control->loadmotor_targetforce = 0;
+    control->clutch_state = true;
+    if ((steerwheel_angle - roadwheel_angle < 0.05)&&(steerwheel_angle - roadwheel_angle > -0.05)) {
+        active_function_ptr = NULL;
+    }
+}
 void MainWindow::matlab_connection_test()
 {}
 void MainWindow::developer_mode()
@@ -256,7 +268,27 @@ void MainWindow::windows_matlab_cmd_callback(const std_msgs::Float32& msg)
 
 //*************************************SLOTS************************************//
 
-void MainWindow::on_btn_close_clicked() {close();}
+void MainWindow::on_btn_close_clicked() {
+    active_function_ptr = NULL;
+    
+    std_msgs::Float32 loadmotor_cmd_msg;
+    std_msgs::Float32 clutch_cmd_msg;
+    std_msgs::Float32 BLDC0_cmd_msg;
+    std_msgs::Float32 BLDC1_cmd_msg;
+    std_msgs::Float32 matlab_rsps_msg;
+    loadmotor_cmd_msg.data = 0;
+    loadMotor_pub.publish(loadmotor_cmd_msg);
+    clutch_cmd_msg.data = false;
+    clutch_pub.publish(clutch_cmd_msg);
+    BLDC0_cmd_msg.data = 0;
+    BLDC0_current_pub.publish(BLDC0_cmd_msg);
+    BLDC1_cmd_msg.data = 0;
+    BLDC1_current_pub.publish(BLDC1_cmd_msg);
+    matlab_rsps_msg.data = matlab_cmd_reception;
+    windows_matlab_response_pub.publish(matlab_rsps_msg);
+    
+    close();
+}
 
 void MainWindow::on_btn_terminate_clicked(){
     if (active_function_ptr == NULL)
