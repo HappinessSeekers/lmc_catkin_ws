@@ -1,0 +1,8 @@
+.vscode/
+.idea/
+build/
+results/
+tmp/
+cmake-guild-debug/
+.clang-format
+screen-log*
