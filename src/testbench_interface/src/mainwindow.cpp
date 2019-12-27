@@ -103,13 +103,13 @@ void MainWindow::onControlTimerOut() {
     std_msgs::Float32 BLDC0_cmd_msg;
     std_msgs::Float32 BLDC1_cmd_msg;
     std_msgs::Float32 matlab_rsps_msg;
-    loadmotor_cmd_msg.data = control->loadmotor_targetforce;
+    loadmotor_cmd_msg.data = loadMotorVoltage(control->loadMotor_PID_controller->PID_calculate(control->loadmotor_targetforce, rackforce));
     loadMotor_pub.publish(loadmotor_cmd_msg);
     clutch_cmd_msg.data = control->clutch_state;
     clutch_pub.publish(clutch_cmd_msg);
     BLDC0_cmd_msg.data = control->BLDC0_current;
     BLDC0_current_pub.publish(BLDC0_cmd_msg);
-    BLDC1_cmd_msg.data = -control->BLDC1_current;
+    BLDC1_cmd_msg.data = -control->BLDC1_current; // Mind that this motor has opposite direction than others.
     BLDC1_current_pub.publish(BLDC1_cmd_msg);
     matlab_rsps_msg.data = matlab_cmd_reception;
     windows_matlab_response_pub.publish(matlab_rsps_msg);
