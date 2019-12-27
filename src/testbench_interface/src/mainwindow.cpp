@@ -49,10 +49,10 @@ void MainWindow::init_variables()
     control->roadwheelMotor_PID_controller->set_Ki(3.0);
     control->roadwheelMotor_PID_controller->set_Kd(0.0);
     control->roadwheelMotor_PID_controller->set_I_limit(6.0);
-    control->loadMotor_PID_controller->set_Kp(0.25);
-    control->loadMotor_PID_controller->set_Ki(8.0);
+    control->loadMotor_PID_controller->set_Kp(0.4);
+    control->loadMotor_PID_controller->set_Ki(0.5);
     control->loadMotor_PID_controller->set_Kd(0.0);
-    control->loadMotor_PID_controller->set_I_limit(6.0);
+    control->loadMotor_PID_controller->set_I_limit(1.5);
     //function ptr
     active_function_ptr = NULL;
 
@@ -113,7 +113,7 @@ void MainWindow::onControlTimerOut() {
     BLDC1_current_pub.publish(BLDC1_cmd_msg);
     matlab_rsps_msg.data = matlab_cmd_reception;
     windows_matlab_response_pub.publish(matlab_rsps_msg);
-    log_new_line("control published");
+    // log_new_line("control published");
     if (control->ctrl_quit == true) {active_function_ptr = NULL;}
     ros::spinOnce();
 }
@@ -143,7 +143,7 @@ void MainWindow::txt_update(){
     ui->txtDisp_SW_Motor_CMD->setPlainText(QString::number(control->BLDC1_current));
     ui->txtDisp_SW_Motor_RSPS->setPlainText(QString::number(BLDC1_current));
 
-    log_new_line("data updated");
+    // log_new_line("data updated");
 }
 
 //
@@ -236,8 +236,14 @@ void MainWindow::recover() {
 }
 void MainWindow::matlab_connection_test()
 {}
-void MainWindow::developer_mode()
-{}
+void MainWindow::developer_mode() {
+    double secs =ros::Time::now().toSec();
+    float angle_target = 0;
+    control->BLDC0_current = limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
+    control->BLDC1_current = 0;
+    control->loadmotor_targetforce = 2.5;
+    control->clutch_state = false;
+}
 
 //*********************************** CALLBACKS ********************************//
 void MainWindow::roadwheel_angle_reciever_callback(const std_msgs::Float32& msg)
@@ -258,7 +264,7 @@ void MainWindow::BLDC1_current_reciever_callback(const std_msgs::Float32& msg)
 }
 void MainWindow::rackforce_reciever_callback(const std_msgs::Float32& msg)
 {
-    rackforce = msg.data;
+    rackforce = msg.data * 2;
 }
 void MainWindow::windows_matlab_cmd_callback(const std_msgs::Float32& msg)
 {
