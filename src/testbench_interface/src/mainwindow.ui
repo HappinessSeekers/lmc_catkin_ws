@@ -507,7 +507,7 @@
      </rect>
     </property>
     <property name="text">
-     <string> kN</string>
+     <string> V</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_19">

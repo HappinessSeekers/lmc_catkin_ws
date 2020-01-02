@@ -41,18 +41,18 @@ void MainWindow::init_variables()
     controlTimer = new QTimer();
     displayTimer = new QTimer();
     //PID controller
-    control->steerwheelMotor_PID_controller->set_Kp(1.2);
-    control->steerwheelMotor_PID_controller->set_Ki(3.0);
-    control->steerwheelMotor_PID_controller->set_Kd(0.0);
-    control->steerwheelMotor_PID_controller->set_I_limit(6.0);
-    control->roadwheelMotor_PID_controller->set_Kp(1.2);
-    control->roadwheelMotor_PID_controller->set_Ki(3.0);
-    control->roadwheelMotor_PID_controller->set_Kd(0.0);
-    control->roadwheelMotor_PID_controller->set_I_limit(6.0);
-    control->loadMotor_PID_controller->set_Kp(0.4);
-    control->loadMotor_PID_controller->set_Ki(0.5);
+    control->steerwheelMotor_PID_controller->set_Kp(0.6);
+    control->steerwheelMotor_PID_controller->set_Ki(3.2);
+    control->steerwheelMotor_PID_controller->set_Kd(0.8);
+    control->steerwheelMotor_PID_controller->set_I_limit(9.0);
+    control->roadwheelMotor_PID_controller->set_Kp(0.6);
+    control->roadwheelMotor_PID_controller->set_Ki(3.2);
+    control->roadwheelMotor_PID_controller->set_Kd(0.8);
+    control->roadwheelMotor_PID_controller->set_I_limit(9.0);
+    control->loadMotor_PID_controller->set_Kp(0.5);
+    control->loadMotor_PID_controller->set_Ki(2);
     control->loadMotor_PID_controller->set_Kd(0.0);
-    control->loadMotor_PID_controller->set_I_limit(1.5);
+    control->loadMotor_PID_controller->set_I_limit(0.0);
     //function ptr
     active_function_ptr = NULL;
 
@@ -103,7 +103,7 @@ void MainWindow::onControlTimerOut() {
     std_msgs::Float32 BLDC0_cmd_msg;
     std_msgs::Float32 BLDC1_cmd_msg;
     std_msgs::Float32 matlab_rsps_msg;
-    loadmotor_cmd_msg.data = loadMotorVoltage(control->loadMotor_PID_controller->PID_calculate(control->loadmotor_targetforce, rackforce));
+    loadmotor_cmd_msg.data = control->loadmotor_voltage;
     loadMotor_pub.publish(loadmotor_cmd_msg);
     clutch_cmd_msg.data = control->clutch_state;
     clutch_pub.publish(clutch_cmd_msg);
@@ -115,6 +115,9 @@ void MainWindow::onControlTimerOut() {
     windows_matlab_response_pub.publish(matlab_rsps_msg);
     // log_new_line("control published");
     if (control->ctrl_quit == true) {active_function_ptr = NULL;}
+    BLDC0_angle_protection();
+    BLDC1_angle_protection();
+
     ros::spinOnce();
 }
 
@@ -134,7 +137,7 @@ void MainWindow::txt_update(){
         ui->txtDisp_Matlab->setPlainText(QString::number(matlab_cmd_repo));
 
     ui->txtDisp_Clutch->setPlainText(QString::number(control->clutch_state));
-    ui->txtDisp_LoadMotor_CMD->setPlainText(QString::number(control->loadmotor_targetforce));
+    ui->txtDisp_LoadMotor_CMD->setPlainText(QString::number(control->loadmotor_voltage));
     ui->txtDisp_RW_Angle->setPlainText(QString::number(roadwheel_angle));
     ui->txtDisp_RW_Motor_CMD->setPlainText(QString::number(control->BLDC0_current));
     ui->txtDisp_RW_Motor_RSPS->setPlainText(QString::number(BLDC0_current));
@@ -152,16 +155,16 @@ void MainWindow::log_clearup(const QString& str) {ui->txtDisp_info->setPlainText
 void MainWindow::log_clearup() {ui->txtDisp_info->setPlainText("");}
 
 void MainWindow::BLDC0_angle_protection(){
-    if (roadwheel_angle > 440)
+    if (roadwheel_angle > 40)
         control->stop();
-    else if (roadwheel_angle < -440)
+    else if (roadwheel_angle < -40)
         control->stop();
 }
 
 void MainWindow::BLDC1_angle_protection(){
-    if (steerwheel_angle > 440)
+    if (steerwheel_angle > 40)
         control->stop();
-    else if (steerwheel_angle < -440)
+    else if (steerwheel_angle < -40)
         control->stop();
 }
 
@@ -178,7 +181,7 @@ Control::Control(const float& controller_frequency)
     BLDC0_current = 0.0;
     BLDC1_current = 0.0;
     clutch_state = true;
-    loadmotor_targetforce = 0.0;
+    loadmotor_voltage = 0.0;
     ctrl_quit = false;
 
     steerwheelMotor_PID_controller = new PID_Algorithm(controller_frequency);
@@ -200,7 +203,7 @@ void Control::stop() {ctrl_quit = true;}
 void MainWindow::system_disable() {
     control->BLDC0_current = 0;
     control->BLDC1_current = 0;
-    control->loadmotor_targetforce = 0;
+    control->loadmotor_voltage = 0;
     control->clutch_state = false;
 }
 void MainWindow::lowermotor_sine_tuning_demo() {
@@ -208,7 +211,7 @@ void MainWindow::lowermotor_sine_tuning_demo() {
     float angle_target = 100*sin(0.5 * secs);
     control->BLDC0_current = limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
     control->BLDC1_current = 0;
-    control->loadmotor_targetforce = 0;
+    control->loadmotor_voltage = 0;
     control->clutch_state = false;
 }
 void MainWindow::uppermotor_sine_tuning_demo() {
@@ -216,19 +219,19 @@ void MainWindow::uppermotor_sine_tuning_demo() {
     float angle_target = 100*sin(0.5 * secs);
     control->BLDC0_current = 0;
     control->BLDC1_current = limitation(control->steerwheelMotor_PID_controller->PID_calculate(angle_target, steerwheel_angle),15);
-    control->loadmotor_targetforce = 0;
+    control->loadmotor_voltage = 0;
     control->clutch_state = false;
 }
 void MainWindow::angle_following_demo() {
     control->BLDC0_current = limitation(control->roadwheelMotor_PID_controller->PID_calculate(steerwheel_angle, roadwheel_angle),15);
     control->BLDC1_current = 0;
-    control->loadmotor_targetforce = 0;
+    control->loadmotor_voltage = 0;
     control->clutch_state = true;
 }
 void MainWindow::recover() {
     control->BLDC0_current = limitation(control->roadwheelMotor_PID_controller->PID_calculate(0, roadwheel_angle),15);
     control->BLDC1_current = 0;
-    control->loadmotor_targetforce = 0;
+    control->loadmotor_voltage = 0;
     control->clutch_state = true;
     if ((steerwheel_angle - roadwheel_angle < 0.05)&&(steerwheel_angle - roadwheel_angle > -0.05)) {
         active_function_ptr = NULL;
@@ -237,11 +240,11 @@ void MainWindow::recover() {
 void MainWindow::matlab_connection_test()
 {}
 void MainWindow::developer_mode() {
-    double secs =ros::Time::now().toSec();
     float angle_target = 0;
-    control->BLDC0_current = limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
+    float rack_targetforce = -3;
+    control->BLDC0_current = 0;//limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
     control->BLDC1_current = 0;
-    control->loadmotor_targetforce = 2.5;
+    control->loadmotor_voltage = loadMotorVoltage(rack_targetforce);// + limitation(control->loadMotor_PID_controller->PID_calculate(rack_targetforce, rackforce),1.5);
     control->clutch_state = false;
 }
 
@@ -303,6 +306,7 @@ void MainWindow::on_btn_terminate_clicked(){
         log_new_line("NOTE: Termination Request Recieved.");
     active_function_ptr = NULL;
     //terminate any running functions.
+    
 }
 
 void MainWindow::on_btn_func_1_clicked(){

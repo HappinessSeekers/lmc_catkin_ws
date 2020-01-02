@@ -28,7 +28,7 @@ public:
     float BLDC0_current;    // BLDC0_current: unit: A. roadwheel motor
     float BLDC1_current;    // BLDC1_current: unit: A. steerwheel motor
     bool clutch_state;    // clutch_state: 0 -> engaged;   1 -> disengaged.
-    float loadmotor_targetforce;    // loadmotor_targetforce: unit: kN
+    float loadmotor_voltage;    // loadmotor_voltage: unit: V
     bool ctrl_quit;    // ctrl_quit: 0 -> dont quit;   1 -> quit.s
 
     PID_Algorithm *steerwheelMotor_PID_controller;
