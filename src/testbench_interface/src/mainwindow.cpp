@@ -49,10 +49,10 @@ void MainWindow::init_variables()
     control->roadwheelMotor_PID_controller->set_Ki(3.2);
     control->roadwheelMotor_PID_controller->set_Kd(0.8);
     control->roadwheelMotor_PID_controller->set_I_limit(9.0);
-    control->loadMotor_PID_controller->set_Kp(0.5);
-    control->loadMotor_PID_controller->set_Ki(2);
+    control->loadMotor_PID_controller->set_Kp(0.2);
+    control->loadMotor_PID_controller->set_Ki(2.2);
     control->loadMotor_PID_controller->set_Kd(0.0);
-    control->loadMotor_PID_controller->set_I_limit(0.0);
+    control->loadMotor_PID_controller->set_I_limit(0.7);
     //function ptr
     active_function_ptr = NULL;
 
@@ -111,7 +111,7 @@ void MainWindow::onControlTimerOut() {
     BLDC0_current_pub.publish(BLDC0_cmd_msg);
     BLDC1_cmd_msg.data = -control->BLDC1_current; // Mind that this motor has opposite direction than others.
     BLDC1_current_pub.publish(BLDC1_cmd_msg);
-    matlab_rsps_msg.data = matlab_cmd_reception;
+    matlab_rsps_msg.data = matlab_cmd_repo;
     windows_matlab_response_pub.publish(matlab_rsps_msg);
     // log_new_line("control published");
     if (control->ctrl_quit == true) {active_function_ptr = NULL;}
@@ -155,16 +155,16 @@ void MainWindow::log_clearup(const QString& str) {ui->txtDisp_info->setPlainText
 void MainWindow::log_clearup() {ui->txtDisp_info->setPlainText("");}
 
 void MainWindow::BLDC0_angle_protection(){
-    if (roadwheel_angle > 40)
+    if (roadwheel_angle > 400)
         control->stop();
-    else if (roadwheel_angle < -40)
+    else if (roadwheel_angle < -400)
         control->stop();
 }
 
 void MainWindow::BLDC1_angle_protection(){
-    if (steerwheel_angle > 40)
+    if (steerwheel_angle > 400)
         control->stop();
-    else if (steerwheel_angle < -40)
+    else if (steerwheel_angle < -400)
         control->stop();
 }
 
@@ -237,17 +237,30 @@ void MainWindow::recover() {
         active_function_ptr = NULL;
     }
 }
-void MainWindow::matlab_connection_test()
-{}
-void MainWindow::developer_mode() {
+void MainWindow::matlab_connection_test() {
     float angle_target = 0;
-    float rack_targetforce = -3;
+    float rack_targetforce = matlab_cmd_repo;
     control->BLDC0_current = 0;//limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
     control->BLDC1_current = 0;
-    control->loadmotor_voltage = loadMotorVoltage(rack_targetforce);// + limitation(control->loadMotor_PID_controller->PID_calculate(rack_targetforce, rackforce),1.5);
+    control->loadmotor_voltage = loadMotorVoltage(rack_targetforce) + limitation(control->loadMotor_PID_controller->PID_calculate(rack_targetforce, rackforce),1.5);
     control->clutch_state = false;
 }
-
+void MainWindow::developer_mode() {
+    float angle_target = 0;
+    float rack_targetforce = -1;
+    control->BLDC0_current = 0;//limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
+    control->BLDC1_current = 0;
+    control->loadmotor_voltage = loadMotorVoltage(rack_targetforce) + limitation(control->loadMotor_PID_controller->PID_calculate(rack_targetforce, rackforce),1.5);
+    control->clutch_state = false;
+}
+void MainWindow::joint_simulation_mode() {
+    float angle_target = 0;
+    float rack_targetforce = matlab_cmd_repo;
+    control->BLDC0_current = 0;//limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
+    control->BLDC1_current = 0;
+    control->loadmotor_voltage = loadMotorVoltage(rack_targetforce) + limitation(control->loadMotor_PID_controller->PID_calculate(rack_targetforce, rackforce),1.5);
+    control->clutch_state = false;
+}
 //*********************************** CALLBACKS ********************************//
 void MainWindow::roadwheel_angle_reciever_callback(const std_msgs::Float32& msg)
 {
@@ -372,8 +385,8 @@ void MainWindow::on_btn_func_6_clicked(){
 void MainWindow::on_btn_func_7_clicked(){
     if (active_function_ptr == NULL)
     {
-        active_function_ptr = NULL;
-        log_new_line("NOTE: Loading Function 'reserved'");
+        active_function_ptr = &MainWindow::joint_simulation_mode;
+        log_new_line("NOTE: Loading Function 'testbench joint simulation'");
     }
     else
         log_new_line("NOTE: A Function Is Already Running!.");

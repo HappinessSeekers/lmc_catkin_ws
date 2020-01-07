@@ -116,6 +116,7 @@ public:
     void recover();
     void matlab_connection_test();
     void developer_mode();
+    void joint_simulation_mode();
 
     // typedef void (MainWindow::*MemberFunctionPtr)();
     // MemberFunctionPtr active_function_ptr;
