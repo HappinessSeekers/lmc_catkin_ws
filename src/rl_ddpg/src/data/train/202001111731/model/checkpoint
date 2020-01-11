@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/lmc/ROS/lmc_catkin_ws/src/rl_ddpg/src/data/train/202001111731/model/model.ckpt"
+all_model_checkpoint_paths: "/home/lmc/ROS/lmc_catkin_ws/src/rl_ddpg/src/data/train/202001111731/model/model.ckpt"

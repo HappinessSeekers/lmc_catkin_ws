@@ -10,6 +10,7 @@ time_t timep;
  
 
 FILE *fp;
+
 VCI_CAN_OBJ transimit_obj[100];
 VCI_CAN_OBJ receive_obj[1000];
 uint32_t CAN_transimit_len = 0; 
@@ -41,6 +42,7 @@ void BLDC0_currentCallback(const std_msgs::Float32& msg)
 	transimit_obj[CAN_transimit_len].RemoteFlag=0;
 	transimit_obj[CAN_transimit_len].ExternFlag=0;
 	CAN_transimit_len++;
+	printf("BLDC0 OK\n");
 	//ROS_INFO("%d",CAN_transimit_len);
 
 }
@@ -56,6 +58,7 @@ void BLDC1_currentCallback(const std_msgs::Float32& msg)
 	transimit_obj[CAN_transimit_len].RemoteFlag=0;
 	transimit_obj[CAN_transimit_len].ExternFlag=0;
 	CAN_transimit_len++;
+	printf("BLDC1 OK\n");
 	//ROS_INFO("%d",CAN_transimit_len);
 
 }
@@ -66,9 +69,7 @@ int main(int argc, char** argv)
     ros::init(argc,argv,"usbcan_driver");   
     ros::NodeHandle n;    
 	ros::Rate loop_rate(1000);
-	fp = fopen("4-22.csv","a+");//设置记录文件的路径
-	time(&timep);
-    fprintf(fp,"\n%s\n",ctime(&timep));
+
 	ros::Publisher steerWheelAngle_pub = n.advertise<std_msgs::Float32>("steerWheelAngle", 1000);
 	ros::Publisher roadWheelAngle_pub = n.advertise<std_msgs::Float32>("roadWheelAngle", 1000);
 	ros::Publisher BLDC0_current_feedback_pub = n.advertise<std_msgs::Float32>("BLDC0_current_feedback", 1000);
@@ -125,7 +126,12 @@ int main(int argc, char** argv)
 		VCI_CloseDevice(VCI_USBCAN2,DEV_INDEX_0);
 		return 0;
 	}
-	
+	/**********************************************************************************/
+
+	fp = fopen("1-11.csv","a+");//设置记录文件的路径
+	time(&timep);
+    fprintf(fp,"\n%s\n",ctime(&timep));
+
 	/*********************************main loop******************************************/
 	while (ros::ok())
 	{
@@ -143,6 +149,8 @@ int main(int argc, char** argv)
 			transimit_obj[CAN_transimit_len].RemoteFlag=0;
 			transimit_obj[CAN_transimit_len].ExternFlag=0;
 			CAN_transimit_len++;
+			BLDC0_timeout_count = 0;
+			printf("BLDC0 TIME OUT\n");
 		}
 
 		BLDC1_timeout_count++;
@@ -157,6 +165,8 @@ int main(int argc, char** argv)
 			transimit_obj[CAN_transimit_len].RemoteFlag=0;
 			transimit_obj[CAN_transimit_len].ExternFlag=0;
 			CAN_transimit_len++;
+			BLDC1_timeout_count = 0;
+			printf("BLDC1 TIME OUT\n");
 		}
 
 		/***************CAN transimit****************************************/
@@ -216,6 +226,11 @@ int main(int argc, char** argv)
 						BLDC1_current_feedback_msg.data = CAN_ID531_obj.BLDC_current;
 						BLDC1_current_feedback_pub.publish(BLDC1_current_feedback_msg);
 						break;
+					}
+					case 0x7F0:{
+					fprintf(fp,"%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X\n",receive_obj[j].Data[0],receive_obj[j].Data[1],receive_obj[j].Data[2],receive_obj[j].Data[3],receive_obj[j].Data[4],receive_obj[j].Data[5],receive_obj[j].Data[6],receive_obj[j].Data[7]);
+					break;
+
 					}
 					default:break;
 				}	

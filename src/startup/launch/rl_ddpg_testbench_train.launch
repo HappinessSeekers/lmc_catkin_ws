@@ -1,0 +1,4 @@
+<launch>
+    <node name="testbench_train_env" pkg="rl_ddpg" type="testbench_train_env.py" output="screen"/>
+    <node name="ddpg_train" pkg="rl_ddpg" type="ddpg_train.py" output="screen"/>
+</launch>

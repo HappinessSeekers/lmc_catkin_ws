@@ -93,6 +93,7 @@ void loadMotorCallback(const std_msgs::Float32& msg)
         buf2[3] = (uint8_t)(temp*10)*16 +(uint8_t)((temp*10-(uint8_t)(temp*10))*10);
         buf2[4] = 0xA5;        
         ser2.write(buf2,5);
+        printf("loadMotor OK\n");
     }
 }
 
@@ -179,6 +180,8 @@ int main(int argc,char** argv)
                 buf2[3] = 0x00;
                 buf2[4] = 0xA5;        
                 ser2.write(buf2,5);
+            loadMotor_timeout_count = 0;
+            printf("loadMotor TIME OUT\n");
             }
         }
         /*****************************************/

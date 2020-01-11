@@ -1,0 +1,5 @@
+<launch>
+    <node name="simulation_test_env" pkg="rl_ddpg" type="simulation_test_env.py" output="screen"/>
+    <node name="ddpg_test" pkg="rl_ddpg" type="ddpg_test.py" output="screen"/>
+    <node name="controller_play" pkg="rl_ddpg" type="controller_play.py" output="screen"/>
+</launch>

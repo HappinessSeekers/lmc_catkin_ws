@@ -17,7 +17,7 @@ class PID(object):
         self.ds = s[19] - s[9]
         self.dv = s[21] - s[20] 
         self.dss = np.clip(self.dss + self.ds*t, -self.dss_bound,self.dss_bound)
-        output = np.clip(self.ds * self.kp + self.dv * self.kd + self.dss * self.ki,-20,20)
+        output = np.clip(self.ds * self.kp + self.dv * self.kd + self.dss * self.ki,-12,12)
         return np.array([output],dtype=Float32)
 
     def reset(self):

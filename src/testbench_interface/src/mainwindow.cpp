@@ -247,11 +247,11 @@ void MainWindow::matlab_connection_test() {
 }
 void MainWindow::developer_mode() {
     float angle_target = 0;
-    float rack_targetforce = -1;
+    float rack_targetforce = 0;
     control->BLDC0_current = 0;//limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
-    control->BLDC1_current = 0;
-    control->loadmotor_voltage = loadMotorVoltage(rack_targetforce) + limitation(control->loadMotor_PID_controller->PID_calculate(rack_targetforce, rackforce),1.5);
-    control->clutch_state = false;
+    control->BLDC1_current = -9;
+    control->loadmotor_voltage = 0;
+    control->clutch_state = true;
 }
 void MainWindow::joint_simulation_mode() {
     float angle_target = 0;

@@ -3,7 +3,7 @@
 import tensorflow as tf
 import numpy as np
 import sys
-
+from scipy import io
 
 class DDPG(object):
     def __init__(self,
@@ -11,13 +11,13 @@ class DDPG(object):
                  s_dim,
                  a_bound,
                  gamma=0.8,
-                 lr_a=0.001,
-                 lr_c=0.002,
+                 lr_a=0.004,
+                 lr_c=0.008,
                  tau=0.01,
-                 memory_size=5000,
+                 memory_size=2000,
                  batch_size=128,
                  var_start=0.5,
-                 var_replace_ratio=0.9995,
+                 var_replace_ratio=0.999,
                  is_restore=False,
                  is_save=False,
                  save_path="/data/model/",
@@ -200,6 +200,7 @@ class DDPG(object):
             np.save(self.save_path+"c_cost_his.npy", c_cost_his)
             average_reward_his = np.array(self.average_reward_his)
             np.save(self.save_path+"average_reward_his.npy", average_reward_his)
+            io.savemat(self.save_path+'train_his.mat',{'a_cost_his':self.a_cost_his,'c_cost_his':self.c_cost_his,'average_reward_his':self.average_reward_his})
         else:
             pass
 
