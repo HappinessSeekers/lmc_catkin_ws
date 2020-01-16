@@ -48,7 +48,7 @@ def run_task(env, net, max_episode,step_limit=100000,record_path="/data/test/dat
                 print("net.average_reward: "+str(net.average_reward))
 
 if __name__ == '__main__':
-    model = "202001101544"   # first version 202001081020
+    model = "202001111731"   # first version 202001081020
     model_path = "/data/train/" +model + "/model/"
 
     path = "/data/test/" + getTime()
@@ -67,4 +67,4 @@ if __name__ == '__main__':
     # track_env = Env(is_bldc2_control=False,is_compare=False)     # test for curve single control
     track_env = Env(is_bldc2_control=True,is_compare=False)      # test for random motor single control
 
-    run_task(track_env, track_ddpg,500,record_path=record_path)
+    run_task(track_env, track_ddpg,50,record_path=record_path)

@@ -33,18 +33,18 @@ class Env(object):
 
         # ros setting
         rospy.init_node('track_controller')
-        self.env_BLDC3_current_pub = rospy.Publisher('env_BLDC3_current', Float32, queue_size=100)
+        self.env_BLDC3_current_pub = rospy.Publisher('env_BLDC1_current', Float32, queue_size=100)
         self.control_reward_pub = rospy.Publisher('control_reward',Float32,queue_size=100)
         if not self.is_compare:
             self.env_BLDC2_current_pub = rospy.Publisher('env_BLDC2_current', Float32, queue_size=100)
         
-        rospy.Subscriber('env_BLDC3_v', Float32, self.env_BLDC3_vCallback)
-        rospy.Subscriber("env_BLDC3_s", Float32, self.env_BLDC3_sCallback)
+        rospy.Subscriber('env_BLDC1_v', Float32, self.env_BLDC3_vCallback)
+        rospy.Subscriber("env_BLDC1_s", Float32, self.env_BLDC3_sCallback)
         rospy.Subscriber('env_BLDC2_v', Float32, self.env_BLDC2_vCallback)
         rospy.Subscriber("env_BLDC2_s", Float32, self.env_BLDC2_sCallback)
         if self.is_compare:
-            rospy.Subscriber('env_BLDC1_v', Float32, self.env_BLDC1_vCallback)
-            rospy.Subscriber("env_BLDC1_s", Float32, self.env_BLDC1_sCallback)
+            rospy.Subscriber('env_BLDC3_v', Float32, self.env_BLDC1_vCallback)
+            rospy.Subscriber("env_BLDC3_s", Float32, self.env_BLDC1_sCallback)
 
         self.rate = rospy.Rate(50)
     
@@ -132,8 +132,8 @@ class Env(object):
         return observation, reward, done
 
     def caculate_reset_current(self):
-        KP = 1
-        kd = 0.2
+        KP = 0.5
+        kd = 0.1
         BLDC3_current = - KP * self.BLDC3_state[-1] - kd * self.BLDC3_v
         self.BLDC3_current = np.clip(BLDC3_current,-self.current_bound,self.current_bound)
         if not self.is_compare:

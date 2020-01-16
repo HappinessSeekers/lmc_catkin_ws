@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding:utf-8
-from controller_env import Env
+from controller_testbench_env import Env
 from controller import PID
 import numpy as np
 from tools import *
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     record_path = path + "/record/"
     create_dir(path)
 
-    PID_controller = PID(kp=1,ki=0,kd=0.2,dss_bound = 10)
+    PID_controller = PID(kp=0.5,ki=0,kd=0.1,dss_bound = 10)
     ##### select env #################
     # track_env = Env(is_bldc2_control=False,is_compare=True)  # for random cruve compare 
     # track_env = Env(is_bldc2_control=True,is_compare=True)   # for random motor compare

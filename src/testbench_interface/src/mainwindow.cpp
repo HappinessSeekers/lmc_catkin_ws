@@ -249,7 +249,7 @@ void MainWindow::developer_mode() {
     float angle_target = 0;
     float rack_targetforce = 0;
     control->BLDC0_current = 0;//limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
-    control->BLDC1_current = -9;
+    control->BLDC1_current = -7;
     control->loadmotor_voltage = 0;
     control->clutch_state = true;
 }

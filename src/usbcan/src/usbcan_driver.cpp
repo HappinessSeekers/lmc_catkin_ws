@@ -210,7 +210,7 @@ int main(int argc, char** argv)
 						CAN_ID180_obj.GetCANData(receive_obj[j].Data,receive_obj[j].TimeStamp);
 						CAN_ID180_obj.Extract();
 						roadWheelAngle_msg.data = CAN_ID180_obj.roadWheelAngle;	
-						roadWheelAngle_pub.publish(roadWheelAngle_msg);											
+						roadWheelAngle_pub.publish(roadWheelAngle_msg);									
 						break;
 					}
 					case 0x530:{
@@ -228,9 +228,8 @@ int main(int argc, char** argv)
 						break;
 					}
 					case 0x7F0:{
-					fprintf(fp,"%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X\n",receive_obj[j].Data[0],receive_obj[j].Data[1],receive_obj[j].Data[2],receive_obj[j].Data[3],receive_obj[j].Data[4],receive_obj[j].Data[5],receive_obj[j].Data[6],receive_obj[j].Data[7]);
-					break;
-
+						fprintf(fp,"%02X,%02X,%02X,%02X,%02X,%02X,%02X,%02X\n",receive_obj[j].Data[0],receive_obj[j].Data[1],receive_obj[j].Data[2],receive_obj[j].Data[3],receive_obj[j].Data[4],receive_obj[j].Data[5],receive_obj[j].Data[6],receive_obj[j].Data[7]);
+						break;
 					}
 					default:break;
 				}	
