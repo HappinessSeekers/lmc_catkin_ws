@@ -417,7 +417,7 @@
      <string>Carsim joint simulation</string>
     </property>
    </widget>
-   <widget class="QGraphicsView" name="rviz_viewer">
+   <widget class="QWidget" name="rviz_viewer">
     <property name="geometry">
      <rect>
       <x>60</x>

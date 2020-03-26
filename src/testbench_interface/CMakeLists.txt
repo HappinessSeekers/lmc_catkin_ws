@@ -40,6 +40,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   image_transport
   cv_bridge
+  rviz
 )
 ##   * add "message_runtime" and every package in MSG_DEP_SET to
 ##     catkin_package(CATKIN_DEPENDS ...)
@@ -209,11 +210,15 @@ add_executable(testbench_interface
         include/testbench_interface/mainwindow.h
         include/testbench_interface/filter.h
         include/testbench_interface/pid_controller.h
+        include/testbench_interface/mrac_controller.h
         include/testbench_interface/tool_functions.h
+        include/testbench_interface/rviz.h
         src/mainwindow.cpp 
         src/filter.cpp 
         src/pid_controller.cpp 
+        src/mrac_controller.cpp 
         src/tool_functions.cpp 
+        src/rviz.cpp
         src/main.cpp)
 # add_dependencies(serial_driver tutorials_generate_messages_cpp)
 add_dependencies(testbench_interface ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

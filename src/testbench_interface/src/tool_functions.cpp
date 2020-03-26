@@ -33,3 +33,24 @@ float loadMotorVoltage(const float& desired_force) {
 
     return desired_voltage;
 }
+
+void MainWindow::BLDC0_angle_protection(){
+    if (roadwheel_angle > 400)
+        control->stop();
+    else if (roadwheel_angle < -400)
+        control->stop();
+}
+
+void MainWindow::BLDC1_angle_protection(){
+    if (steerwheel_angle > 400)
+        control->stop();
+    else if (steerwheel_angle < -400)
+        control->stop();
+}
+
+// timeout function. NOT YET ACTIVE
+void MainWindow::timeout_protection(){
+    if (timeout_counter >= 10)
+        control->stop();
+}
+

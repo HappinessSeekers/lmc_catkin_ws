@@ -4,14 +4,18 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <QString>
+#include <QWidget>
+#include <QVBoxLayout>
 #include "ros/ros.h"
 #include <string>
 #include <cmath>
 #include <iostream>
 #include <ctime>
+#include "testbench_interface/mrac_controller.h"
 #include "testbench_interface/pid_controller.h"
 #include "testbench_interface/filter.h"
 #include "testbench_interface/tool_functions.h"
+#include "testbench_interface/rviz.h"
 #include "std_msgs/String.h"
 #include <std_msgs/Empty.h>
 #include "std_msgs/Float32.h"
@@ -34,6 +38,8 @@ public:
     PID_Algorithm *steerwheelMotor_PID_controller;
     PID_Algorithm *roadwheelMotor_PID_controller;
     PID_Algorithm *loadMotor_PID_controller;
+
+    MRAC_Algorithm *roadwheelMotor_MRAC_controller;
 
     void stop();
 };
