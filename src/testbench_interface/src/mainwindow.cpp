@@ -76,7 +76,7 @@ void MainWindow::init_ROS_and_ui_update()
     windows_matlab_response_pub = n.advertise<std_msgs::Float32>("windows_matlab_response", 1000);
 
     // Initial display windows
-    // Rvizviewer* rvizviewer = new Rvizviewer(ui->rviz_viewer);
+    Rvizviewer* rvizviewer = new Rvizviewer(ui->rviz_window);
 
     // Scan timer at 100Hz for scanning data
     displayTimer->setInterval(40);

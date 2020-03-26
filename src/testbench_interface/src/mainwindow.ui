@@ -426,6 +426,7 @@
       <height>251</height>
      </rect>
     </property>
+    <layout class="QVBoxLayout" name="rviz_window" stretch=""/>
    </widget>
    <widget class="QLabel" name="label_13">
     <property name="geometry">

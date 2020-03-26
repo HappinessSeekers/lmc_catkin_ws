@@ -24,6 +24,7 @@ public:
 private:
     rviz::RenderPanel* rvizPanel;// = new rviz::RenderPanel;
     rviz::VisualizationManager* rvizManager;// =  new rviz::VisualizationManager(pointCloud_panel);
+    rviz::ViewManager* viewManager;
 };
 
 
