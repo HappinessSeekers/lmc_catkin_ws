@@ -38,6 +38,9 @@ void MainWindow::init_variables()
     matlab_cmd_reception = false;
     //control state ptr
     control = new Control(control_frequency);
+    //filter for anglar velocity calculation
+    steerwheel_av_filter = new Filter_IIR_Butterworth_fs_100Hz_fc_4Hz;
+    roadwheel_av_filter = new Filter_IIR_Butterworth_fs_100Hz_fc_4Hz;
     //QTimer ptr
     controlTimer = new QTimer();
     displayTimer = new QTimer();
@@ -54,6 +57,9 @@ void MainWindow::init_variables()
     control->loadMotor_PID_controller->set_Ki(2.2);
     control->loadMotor_PID_controller->set_Kd(0.0);
     control->loadMotor_PID_controller->set_I_limit(0.7);
+    //MRAC controller
+    control->steerwheelMotor_MRAC_controller->set_reference_model(50,1);
+    control->roadwheelMotor_MRAC_controller->set_reference_model(50,1);
     //function ptr
     active_function_ptr = NULL;
 
@@ -94,6 +100,13 @@ void MainWindow::init_ROS_and_ui_update()
 void MainWindow::onDisplayTimerOut() {txt_update();}
 
 void MainWindow::onControlTimerOut() {
+
+    // Update Anglar Velocity
+    steerwheel_av_filter->filter(steerwheel_angle);
+    roadwheel_av_filter->filter(roadwheel_angle);
+    steerwheel_anglar_velocity = steerwheel_av_filter->get_differential();
+    roadwheel_anglar_velocity = roadwheel_av_filter->get_differential();
+
     if (active_function_ptr == NULL) {
         // Do Nothing.
         system_disable();
@@ -173,6 +186,7 @@ Control::Control(const float& controller_frequency)
     roadwheelMotor_PID_controller = new PID_Algorithm(controller_frequency);
     loadMotor_PID_controller = new PID_Algorithm(controller_frequency);
 
+    steerwheelMotor_MRAC_controller = new MRAC_Algorithm(controller_frequency);
     roadwheelMotor_MRAC_controller = new MRAC_Algorithm(controller_frequency);
 }
 
@@ -180,6 +194,7 @@ Control::~Control(){
     delete steerwheelMotor_PID_controller;
     delete roadwheelMotor_PID_controller;
     delete loadMotor_PID_controller;
+    delete steerwheelMotor_MRAC_controller;
     delete roadwheelMotor_MRAC_controller;
 }
 

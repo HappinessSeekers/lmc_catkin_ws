@@ -39,6 +39,7 @@ public:
     PID_Algorithm *roadwheelMotor_PID_controller;
     PID_Algorithm *loadMotor_PID_controller;
 
+    MRAC_Algorithm *steerwheelMotor_MRAC_controller;
     MRAC_Algorithm *roadwheelMotor_MRAC_controller;
 
     void stop();
@@ -111,6 +112,12 @@ public:
     int timeout_counter;
     float matlab_cmd_repo;
     bool matlab_cmd_reception;
+
+    float steerwheel_anglar_velocity;    // column anglar velocity near steering wheel
+    float roadwheel_anglar_velocity;    // column anglar velocity near rack
+
+    Filter_IIR_Butterworth_fs_100Hz_fc_4Hz *steerwheel_av_filter;
+    Filter_IIR_Butterworth_fs_100Hz_fc_4Hz *roadwheel_av_filter;
 
     QTimer *displayTimer, *controlTimer;
     Control *control;

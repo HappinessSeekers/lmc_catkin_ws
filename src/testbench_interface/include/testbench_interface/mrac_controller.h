@@ -15,6 +15,7 @@ public:
     bool set_gamma1(const float&);
     bool set_gamma2(const float&);
     bool set_gamma3(const float&);
+    float MRAC_calculate(const float&, const float&, const float&);
 };
 
 
