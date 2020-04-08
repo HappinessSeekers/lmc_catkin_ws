@@ -8,6 +8,7 @@ private:
 public:
     Filter_IIR_Butterworth_fs_100Hz_fc_4Hz();
     void filter_init();
+    float get_differential();
     float filter(const float&);
 };
 

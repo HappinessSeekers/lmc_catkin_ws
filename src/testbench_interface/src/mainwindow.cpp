@@ -1,12 +1,18 @@
 #include "testbench_interface/mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ros/rostime_decl.h"
+#include <cstdio>
+
+time_t timep;
+FILE *fp;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setWindowTitle("Testbench Interface");
     log_new_line("NODE Interface: Interface Initialized");
 
     init_variables();
@@ -37,6 +43,9 @@ void MainWindow::init_variables()
     matlab_cmd_reception = false;
     //control state ptr
     control = new Control(control_frequency);
+    //filter for anglar velocity calculation
+    steerwheel_av_filter = new Filter_IIR_Butterworth_fs_100Hz_fc_4Hz;
+    roadwheel_av_filter = new Filter_IIR_Butterworth_fs_100Hz_fc_4Hz;
     //QTimer ptr
     controlTimer = new QTimer();
     displayTimer = new QTimer();
@@ -53,8 +62,21 @@ void MainWindow::init_variables()
     control->loadMotor_PID_controller->set_Ki(2.2);
     control->loadMotor_PID_controller->set_Kd(0.0);
     control->loadMotor_PID_controller->set_I_limit(0.7);
+    //MRAC controller
+    control->steerwheelMotor_MRAC_controller->set_reference_model(50,1);
+    control->steerwheelMotor_MRAC_controller->set_gamma1(20);
+    control->steerwheelMotor_MRAC_controller->set_gamma2(20);
+    control->steerwheelMotor_MRAC_controller->set_gamma3(0.001);
+    control->roadwheelMotor_MRAC_controller->set_reference_model(50,1);
+    control->roadwheelMotor_MRAC_controller->set_gamma1(20);
+    control->roadwheelMotor_MRAC_controller->set_gamma2(20);
+    control->roadwheelMotor_MRAC_controller->set_gamma3(0.001);
     //function ptr
     active_function_ptr = NULL;
+
+	fp = fopen("0408.csv","a+");//设置记录文件的路径
+	time(&timep);
+    fprintf(fp,"\n%s\n",ctime(&timep));
 
     log_new_line("NODE Interface: Variables Initialized");
 }
@@ -73,6 +95,10 @@ void MainWindow::init_ROS_and_ui_update()
     BLDC0_current_pub = n.advertise<std_msgs::Float32>("BLDC0_current", 1000);
     BLDC1_current_pub = n.advertise<std_msgs::Float32>("BLDC1_current", 1000);
     windows_matlab_response_pub = n.advertise<std_msgs::Float32>("windows_matlab_response", 1000);
+
+    // Initial display windows
+    Rvizviewer* rvizviewer = new Rvizviewer(ui->rviz_window);
+
     // Scan timer at 100Hz for scanning data
     displayTimer->setInterval(40);
     connect(displayTimer, SIGNAL(timeout()), this, SLOT(onDisplayTimerOut()));
@@ -89,6 +115,13 @@ void MainWindow::init_ROS_and_ui_update()
 void MainWindow::onDisplayTimerOut() {txt_update();}
 
 void MainWindow::onControlTimerOut() {
+
+    // Update Anglar Velocity
+    steerwheel_av_filter->filter(steerwheel_angle);
+    roadwheel_av_filter->filter(roadwheel_angle);
+    steerwheel_anglar_velocity = steerwheel_av_filter->get_differential();
+    roadwheel_anglar_velocity = roadwheel_av_filter->get_differential();
+
     if (active_function_ptr == NULL) {
         // Do Nothing.
         system_disable();
@@ -117,6 +150,8 @@ void MainWindow::onControlTimerOut() {
     if (control->ctrl_quit == true) {active_function_ptr = NULL;}
     BLDC0_angle_protection();
     BLDC1_angle_protection();
+
+    fprintf(fp,"steerwheel_angle: %f, roadwheel_angle: %f\n",steerwheel_angle, roadwheel_angle);
 
     ros::spinOnce();
 }
@@ -154,26 +189,6 @@ void MainWindow::log_new_line(const QString& str) {ui->txtDisp_info->appendPlain
 void MainWindow::log_clearup(const QString& str) {ui->txtDisp_info->setPlainText(str);}
 void MainWindow::log_clearup() {ui->txtDisp_info->setPlainText("");}
 
-void MainWindow::BLDC0_angle_protection(){
-    if (roadwheel_angle > 400)
-        control->stop();
-    else if (roadwheel_angle < -400)
-        control->stop();
-}
-
-void MainWindow::BLDC1_angle_protection(){
-    if (steerwheel_angle > 400)
-        control->stop();
-    else if (steerwheel_angle < -400)
-        control->stop();
-}
-
-// timeout function. NOT YET ACTIVE
-void MainWindow::timeout_protection(){
-    if (timeout_counter >= 10)
-        control->stop();
-}
-
 //*********************************** CONTROL CLASS ********************************//
 
 Control::Control(const float& controller_frequency)
@@ -187,12 +202,17 @@ Control::Control(const float& controller_frequency)
     steerwheelMotor_PID_controller = new PID_Algorithm(controller_frequency);
     roadwheelMotor_PID_controller = new PID_Algorithm(controller_frequency);
     loadMotor_PID_controller = new PID_Algorithm(controller_frequency);
+
+    steerwheelMotor_MRAC_controller = new MRAC_Algorithm(controller_frequency);
+    roadwheelMotor_MRAC_controller = new MRAC_Algorithm(controller_frequency);
 }
 
 Control::~Control(){
     delete steerwheelMotor_PID_controller;
     delete roadwheelMotor_PID_controller;
     delete loadMotor_PID_controller;
+    delete steerwheelMotor_MRAC_controller;
+    delete roadwheelMotor_MRAC_controller;
 }
 
 void Control::stop() {ctrl_quit = true;}
@@ -262,28 +282,12 @@ void MainWindow::joint_simulation_mode() {
     control->clutch_state = false;
 }
 //*********************************** CALLBACKS ********************************//
-void MainWindow::roadwheel_angle_reciever_callback(const std_msgs::Float32& msg)
-{
-    roadwheel_angle = msg.data;
-}
-void MainWindow::steerwheel_angle_reciever_callback(const std_msgs::Float32& msg)
-{
-    steerwheel_angle = msg.data;
-}
-void MainWindow::BLDC0_current_reciever_callback(const std_msgs::Float32& msg)
-{
-    BLDC0_current = msg.data;
-}
-void MainWindow::BLDC1_current_reciever_callback(const std_msgs::Float32& msg)
-{
-    BLDC1_current = msg.data;
-}
-void MainWindow::rackforce_reciever_callback(const std_msgs::Float32& msg)
-{
-    rackforce = msg.data * 2;
-}
-void MainWindow::windows_matlab_cmd_callback(const std_msgs::Float32& msg)
-{
+void MainWindow::roadwheel_angle_reciever_callback(const std_msgs::Float32& msg) {roadwheel_angle = msg.data;}
+void MainWindow::steerwheel_angle_reciever_callback(const std_msgs::Float32& msg) {steerwheel_angle = msg.data;}
+void MainWindow::BLDC0_current_reciever_callback(const std_msgs::Float32& msg) {BLDC0_current = msg.data;}
+void MainWindow::BLDC1_current_reciever_callback(const std_msgs::Float32& msg) {BLDC1_current = msg.data;}
+void MainWindow::rackforce_reciever_callback(const std_msgs::Float32& msg) {rackforce = msg.data * 2;}
+void MainWindow::windows_matlab_cmd_callback(const std_msgs::Float32& msg) {
     matlab_cmd_repo = msg.data;
     matlab_cmd_reception = true;
 }
