@@ -1,6 +1,11 @@
 #include "testbench_interface/mainwindow.h"
 #include "ui_mainwindow.h"
 #include "ros/rostime_decl.h"
+#include <cstdio>
+
+time_t timep;
+FILE *fp;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -59,9 +64,19 @@ void MainWindow::init_variables()
     control->loadMotor_PID_controller->set_I_limit(0.7);
     //MRAC controller
     control->steerwheelMotor_MRAC_controller->set_reference_model(50,1);
+    control->steerwheelMotor_MRAC_controller->set_gamma1(20);
+    control->steerwheelMotor_MRAC_controller->set_gamma2(20);
+    control->steerwheelMotor_MRAC_controller->set_gamma3(0.001);
     control->roadwheelMotor_MRAC_controller->set_reference_model(50,1);
+    control->roadwheelMotor_MRAC_controller->set_gamma1(20);
+    control->roadwheelMotor_MRAC_controller->set_gamma2(20);
+    control->roadwheelMotor_MRAC_controller->set_gamma3(0.001);
     //function ptr
     active_function_ptr = NULL;
+
+	fp = fopen("0408.csv","a+");//设置记录文件的路径
+	time(&timep);
+    fprintf(fp,"\n%s\n",ctime(&timep));
 
     log_new_line("NODE Interface: Variables Initialized");
 }
@@ -135,6 +150,8 @@ void MainWindow::onControlTimerOut() {
     if (control->ctrl_quit == true) {active_function_ptr = NULL;}
     BLDC0_angle_protection();
     BLDC1_angle_protection();
+
+    fprintf(fp,"steerwheel_angle: %f, roadwheel_angle: %f\n",steerwheel_angle, roadwheel_angle);
 
     ros::spinOnce();
 }
