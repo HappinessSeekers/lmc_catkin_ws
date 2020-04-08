@@ -5,6 +5,7 @@
 
 time_t timep;
 FILE *fp;
+FILE *fp_mrac;
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -64,19 +65,31 @@ void MainWindow::init_variables()
     control->loadMotor_PID_controller->set_I_limit(0.7);
     //MRAC controller
     control->steerwheelMotor_MRAC_controller->set_reference_model(50,1);
-    control->steerwheelMotor_MRAC_controller->set_gamma1(20);
-    control->steerwheelMotor_MRAC_controller->set_gamma2(20);
-    control->steerwheelMotor_MRAC_controller->set_gamma3(0.001);
+    control->steerwheelMotor_MRAC_controller->set_gamma1(0.3);
+    control->steerwheelMotor_MRAC_controller->set_gamma2(0.3);
+    control->steerwheelMotor_MRAC_controller->set_gamma3(0.00001);
     control->roadwheelMotor_MRAC_controller->set_reference_model(50,1);
-    control->roadwheelMotor_MRAC_controller->set_gamma1(20);
-    control->roadwheelMotor_MRAC_controller->set_gamma2(20);
-    control->roadwheelMotor_MRAC_controller->set_gamma3(0.001);
+    control->roadwheelMotor_MRAC_controller->set_gamma1(3);
+    control->roadwheelMotor_MRAC_controller->set_gamma2(3);
+    control->roadwheelMotor_MRAC_controller->set_gamma3(0.01);
     //function ptr
     active_function_ptr = NULL;
 
-	fp = fopen("0408.csv","a+");//设置记录文件的路径
-	time(&timep);
-    fprintf(fp,"\n%s\n",ctime(&timep));
+    char filename_str[1000] = {0};
+    sprintf(filename_str,"rostime_%f.csv",ros::Time::now().toSec());
+    std::cout << filename_str << std::endl;
+    fp = fopen(filename_str,"a+");//设置记录文件的路径
+    // fprintf(fp,"\n%s\n",ctime(&timep));
+    fprintf(fp,"ros_time, steerwheel_angle, roadwheel_angle\n");
+
+    char mractest_filename_str[1000] = {0};
+    sprintf(mractest_filename_str,"mrac_%f.csv",ros::Time::now().toSec());
+    std::cout << mractest_filename_str << std::endl;
+    fp_mrac = fopen(mractest_filename_str,"a+");//设置记录文件的路径
+    // fprintf(fp,"\n%s\n",ctime(&timep));
+    fprintf(fp_mrac,"ros_time, r, y, y_dot, theta1, theta2, theta3\n");
+
+    MainWindow::timeout_reset();
 
     log_new_line("NODE Interface: Variables Initialized");
 }
@@ -150,8 +163,12 @@ void MainWindow::onControlTimerOut() {
     if (control->ctrl_quit == true) {active_function_ptr = NULL;}
     BLDC0_angle_protection();
     BLDC1_angle_protection();
+    motor_timeout_check();
+    // write information into csv file.
+    fprintf(fp,"%f, %f, %f\n",ros::Time::now().toSec(),steerwheel_angle, roadwheel_angle);
 
-    fprintf(fp,"steerwheel_angle: %f, roadwheel_angle: %f\n",steerwheel_angle, roadwheel_angle);
+    steeringwheel_motor_timeout_counter++;
+    roadwheel_motor_timeout_counter++;
 
     ros::spinOnce();
 }
@@ -266,12 +283,17 @@ void MainWindow::matlab_connection_test() {
     control->clutch_state = false;
 }
 void MainWindow::developer_mode() {
-    float angle_target = 0;
-    float rack_targetforce = 0;
-    control->BLDC0_current = 0;//limitation(control->roadwheelMotor_PID_controller->PID_calculate(angle_target, roadwheel_angle),15);
-    control->BLDC1_current = -7;
+    double secs =ros::Time::now().toSec();
+    float angle_target = 30*sin(0.5 * secs);
+    float theta1 = control->steerwheelMotor_MRAC_controller->get_theta1();
+    float theta2 = control->steerwheelMotor_MRAC_controller->get_theta2();
+    float theta3 = control->steerwheelMotor_MRAC_controller->get_theta3();
+    control->BLDC0_current = 0;
+    // control->BLDC1_current = limitation(control->steerwheelMotor_PID_controller->PID_calculate(angle_target, steerwheel_angle),15);
+    control->BLDC1_current = limitation(control->steerwheelMotor_MRAC_controller->MRAC_calculate(angle_target, steerwheel_angle, steerwheel_anglar_velocity),15);
+    fprintf(fp_mrac,"%f, %f, %f, %f, %f, %f, %f\n", ros::Time::now().toSec(), angle_target, steerwheel_angle, steerwheel_anglar_velocity, theta1, theta2, theta3);
     control->loadmotor_voltage = 0;
-    control->clutch_state = true;
+    control->clutch_state = false;
 }
 void MainWindow::joint_simulation_mode() {
     float angle_target = 0;
@@ -284,8 +306,14 @@ void MainWindow::joint_simulation_mode() {
 //*********************************** CALLBACKS ********************************//
 void MainWindow::roadwheel_angle_reciever_callback(const std_msgs::Float32& msg) {roadwheel_angle = msg.data;}
 void MainWindow::steerwheel_angle_reciever_callback(const std_msgs::Float32& msg) {steerwheel_angle = msg.data;}
-void MainWindow::BLDC0_current_reciever_callback(const std_msgs::Float32& msg) {BLDC0_current = msg.data;}
-void MainWindow::BLDC1_current_reciever_callback(const std_msgs::Float32& msg) {BLDC1_current = msg.data;}
+void MainWindow::BLDC0_current_reciever_callback(const std_msgs::Float32& msg) {
+    BLDC0_current = msg.data;
+    roadwheel_motor_timeout_counter = 0;
+}
+void MainWindow::BLDC1_current_reciever_callback(const std_msgs::Float32& msg) {
+    BLDC1_current = msg.data;
+    steeringwheel_motor_timeout_counter = 0;
+}
 void MainWindow::rackforce_reciever_callback(const std_msgs::Float32& msg) {rackforce = msg.data * 2;}
 void MainWindow::windows_matlab_cmd_callback(const std_msgs::Float32& msg) {
     matlab_cmd_repo = msg.data;
@@ -329,6 +357,7 @@ void MainWindow::on_btn_terminate_clicked(){
 void MainWindow::on_btn_func_1_clicked(){
     if (active_function_ptr == NULL)
     {
+        timeout_reset();
         active_function_ptr = &MainWindow::lowermotor_sine_tuning_demo;
         log_new_line("NOTE: Loading Function 'lowermotor sine tuning demo'");
     }
@@ -339,6 +368,7 @@ void MainWindow::on_btn_func_1_clicked(){
 void MainWindow::on_btn_func_2_clicked(){
     if (active_function_ptr == NULL)
     {
+        timeout_reset();
         active_function_ptr = &MainWindow::uppermotor_sine_tuning_demo;
         log_new_line("NOTE: Loading Function 'uppermotor sine tuning demo'");
     }
@@ -349,6 +379,7 @@ void MainWindow::on_btn_func_2_clicked(){
 void MainWindow::on_btn_func_3_clicked(){
     if (active_function_ptr == NULL)
     {
+        timeout_reset();
         active_function_ptr = &MainWindow::angle_following_demo;
         log_new_line("NOTE: Loading Function 'angle following demo'");
     }
@@ -359,6 +390,7 @@ void MainWindow::on_btn_func_3_clicked(){
 void MainWindow::on_btn_func_4_clicked(){
     if (active_function_ptr == NULL)
     {
+        timeout_reset();
         active_function_ptr = &MainWindow::recover;
         log_new_line("NOTE: Loading Function 'recover'");
     }
@@ -369,6 +401,7 @@ void MainWindow::on_btn_func_4_clicked(){
 void MainWindow::on_btn_func_5_clicked(){
     if (active_function_ptr == NULL)
     {
+        timeout_reset();
         active_function_ptr = &MainWindow::matlab_connection_test;
         log_new_line("NOTE: Loading Function 'matlab connection test'");
     }
@@ -379,6 +412,7 @@ void MainWindow::on_btn_func_5_clicked(){
 void MainWindow::on_btn_func_6_clicked(){
     if (active_function_ptr == NULL)
     {
+        timeout_reset();
         active_function_ptr = &MainWindow::developer_mode;
         log_new_line("NOTE: Loading Function 'developer mode'");
     }
@@ -389,6 +423,7 @@ void MainWindow::on_btn_func_6_clicked(){
 void MainWindow::on_btn_func_7_clicked(){
     if (active_function_ptr == NULL)
     {
+        timeout_reset();
         active_function_ptr = &MainWindow::joint_simulation_mode;
         log_new_line("NOTE: Loading Function 'testbench joint simulation'");
     }

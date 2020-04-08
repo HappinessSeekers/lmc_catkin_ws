@@ -54,3 +54,21 @@ void MainWindow::timeout_protection(){
         control->stop();
 }
 
+void MainWindow::timeout_reset(){
+    steeringwheel_motor_timeout_counter = 0;
+    roadwheel_motor_timeout_counter = 0;
+}
+
+//checking whether there is a motor down
+void MainWindow::motor_timeout_check(){
+    if (steeringwheel_motor_timeout_counter > 20) {
+        control->stop();
+        timeout_reset();
+        log_new_line("Fatal Error: Steering Motor Down!!");
+    }
+    if (roadwheel_motor_timeout_counter > 20) {
+        control->stop();
+        timeout_reset();
+        log_new_line("Fatal Error: Roadwheel Motor Down!!");
+    }
+}

@@ -95,6 +95,8 @@ public:
     void BLDC0_angle_protection();
     void BLDC1_angle_protection();
     void timeout_protection();
+    void timeout_reset();
+    void motor_timeout_check();
 
     void roadwheel_angle_reciever_callback(const std_msgs::Float32& msg);
     void steerwheel_angle_reciever_callback(const std_msgs::Float32& msg);
@@ -110,6 +112,8 @@ public:
     float roadwheel_angle;    // column angle near rack
     float control_frequency;   // This value can not be zero or below!
     int timeout_counter;
+    int steeringwheel_motor_timeout_counter;
+    int roadwheel_motor_timeout_counter;
     float matlab_cmd_repo;
     bool matlab_cmd_reception;
 

@@ -75,3 +75,6 @@ float MRAC_Algorithm::MRAC_calculate(const float& r, const float& y, const float
     return u;
 }
 
+float MRAC_Algorithm::get_theta1() {return theta1;}
+float MRAC_Algorithm::get_theta2() {return theta2;}
+float MRAC_Algorithm::get_theta3() {return theta3;}
