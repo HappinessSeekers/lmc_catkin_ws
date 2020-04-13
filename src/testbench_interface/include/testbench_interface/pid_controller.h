@@ -13,6 +13,10 @@ public:
     void set_Kd(const float&);
     void set_I_limit(const float&);
     float PID_calculate(const float&, const float&);
+    float read_Kp();
+    float read_Ki();
+    float read_Kd();
+    float read_I_limit();
 };
 
 

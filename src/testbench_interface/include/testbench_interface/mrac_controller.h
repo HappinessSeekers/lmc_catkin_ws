@@ -19,6 +19,9 @@ public:
     float get_theta1();
     float get_theta2();
     float get_theta3();
+    float get_ym();
+    float get_ym_dot();
+    float calculate_delta(const float&, const float&, const float&);
 };
 
 

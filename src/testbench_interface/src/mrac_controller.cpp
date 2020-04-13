@@ -63,7 +63,7 @@ float MRAC_Algorithm::MRAC_calculate(const float& r, const float& y, const float
     // Calculating Error
     e = y-ym;
     e_dot = y_dot-ym_dot;
-    delta = p21*e+p22*e_dot;
+    delta = p21*e+0*p22*e_dot;
     // MRAC Output Calculation
     theta1_dot=-gamma1*delta*r;
     theta2_dot=-gamma2*delta*y;
@@ -78,3 +78,13 @@ float MRAC_Algorithm::MRAC_calculate(const float& r, const float& y, const float
 float MRAC_Algorithm::get_theta1() {return theta1;}
 float MRAC_Algorithm::get_theta2() {return theta2;}
 float MRAC_Algorithm::get_theta3() {return theta3;}
+float MRAC_Algorithm::get_ym() {return ym;}
+float MRAC_Algorithm::get_ym_dot() {return ym_dot;}
+float MRAC_Algorithm::calculate_delta(const float& r, const float& y, const float& y_dot) {
+    float e, e_dot, delta;
+    // Calculating Error
+    e = y-ym;
+    e_dot = y_dot-ym_dot;
+    delta = p21*e+p22*e_dot;
+    return delta;
+}

@@ -15,6 +15,10 @@ void PID_Algorithm::set_Kp(const float& kp) {Kp = kp;}
 void PID_Algorithm::set_Ki(const float& ki) {Ki = ki;}
 void PID_Algorithm::set_Kd(const float& kd) {Kd = kd;}
 void PID_Algorithm::set_I_limit(const float& i_limit) {I_limit = i_limit;}
+float PID_Algorithm::read_Kp() {return Kp;}
+float PID_Algorithm::read_Ki() {return Ki;}
+float PID_Algorithm::read_Kd() {return Kd;}
+float PID_Algorithm::read_I_limit() {return I_limit;}
 float PID_Algorithm::PID_calculate(const float& target, const float& feedback)
 {
     float margin, P, I, D, PID_output;

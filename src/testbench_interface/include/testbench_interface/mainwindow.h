@@ -34,6 +34,9 @@ public:
     bool clutch_state;    // clutch_state: 0 -> engaged;   1 -> disengaged.
     float loadmotor_voltage;    // loadmotor_voltage: unit: V
     bool ctrl_quit;    // ctrl_quit: 0 -> dont quit;   1 -> quit.s
+    bool usr_ctrl_clutch;
+    float usr_sine_magnitude;
+    float usr_sine_w;
 
     PID_Algorithm *steerwheelMotor_PID_controller;
     PID_Algorithm *roadwheelMotor_PID_controller;
@@ -138,6 +141,15 @@ public:
     // typedef void (MainWindow::*MemberFunctionPtr)();
     // MemberFunctionPtr active_function_ptr;
     void (MainWindow::*active_function_ptr)();
+};
+
+class ParameterReader
+{
+public:
+    ParameterReader(std::string);
+    std::string getData(std::string);
+public:
+    std::map<std::string, std::string> data;
 };
 
 #endif // MAINWINDOW_H

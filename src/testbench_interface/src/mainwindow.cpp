@@ -30,8 +30,47 @@ MainWindow::~MainWindow()
     //Need to shut down ROS and return all things back to normal here.
 }
 
+ParameterReader::ParameterReader(std::string filename="./parameters.txt")
+{
+    std::ifstream fin(filename.c_str());
+    if (!fin)
+    {
+        std::cerr << "parameter file does not exist." << std::endl;
+        return;
+    }
+    while(!fin.eof())
+    {
+        std::string str;
+        getline(fin, str);
+        if (str[0] == '#')
+        {
+            // 以‘＃’开头的是注释
+            continue;
+        }
+        int pos = str.find("=");
+        if (pos == -1)
+            continue;
+        std::string key = str.substr(0, pos);
+        std::string value = str.substr(pos+1, str.length());
+        data[key] = value;
+        if (!fin.good())
+            break;
+    }
+}
+std::string ParameterReader::getData(std::string key)
+{
+    std::map<std::string, std::string>::iterator iter = data.find(key);
+    if (iter == data.end())
+    {
+        std::cerr << "Parameter name " << key << " not found!" << std::endl;
+        return std::string("NOT_FOUND");
+    }
+    return iter->second;
+}
+
 void MainWindow::init_variables()
 {
+    ParameterReader pr;
     //Testbench state
     BLDC0_current = 0.0;
     BLDC1_current = 0.0;
@@ -51,43 +90,48 @@ void MainWindow::init_variables()
     controlTimer = new QTimer();
     displayTimer = new QTimer();
     //PID controller
-    control->steerwheelMotor_PID_controller->set_Kp(0.6);
-    control->steerwheelMotor_PID_controller->set_Ki(3.2);
-    control->steerwheelMotor_PID_controller->set_Kd(0.8);
-    control->steerwheelMotor_PID_controller->set_I_limit(9.0);
-    control->roadwheelMotor_PID_controller->set_Kp(0.6);
-    control->roadwheelMotor_PID_controller->set_Ki(3.2);
-    control->roadwheelMotor_PID_controller->set_Kd(0.8);
-    control->roadwheelMotor_PID_controller->set_I_limit(9.0);
-    control->loadMotor_PID_controller->set_Kp(0.2);
-    control->loadMotor_PID_controller->set_Ki(2.2);
-    control->loadMotor_PID_controller->set_Kd(0.0);
-    control->loadMotor_PID_controller->set_I_limit(0.7);
+    control->steerwheelMotor_PID_controller->set_Kp(atof(pr.getData( "steerwheelMotor_PID_Kp" ).c_str()));
+    control->steerwheelMotor_PID_controller->set_Ki(atof(pr.getData( "steerwheelMotor_PID_Ki" ).c_str()));
+    control->steerwheelMotor_PID_controller->set_Kd(atof(pr.getData( "steerwheelMotor_PID_Kd" ).c_str()));
+    control->steerwheelMotor_PID_controller->set_I_limit(atof(pr.getData( "steerwheelMotor_PID_I_limit" ).c_str()));
+    control->roadwheelMotor_PID_controller->set_Kp(atof(pr.getData( "roadwheelMotor_PID_Kp" ).c_str()));
+    control->roadwheelMotor_PID_controller->set_Ki(atof(pr.getData( "roadwheelMotor_PID_Ki" ).c_str()));
+    control->roadwheelMotor_PID_controller->set_Kd(atof(pr.getData( "roadwheelMotor_PID_Kd" ).c_str()));
+    control->roadwheelMotor_PID_controller->set_I_limit(atof(pr.getData( "roadwheelMotor_PID_I_limit" ).c_str()));
+    control->loadMotor_PID_controller->set_Kp(atof(pr.getData( "loadMotor_PID_Kp" ).c_str()));
+    control->loadMotor_PID_controller->set_Ki(atof(pr.getData( "loadMotor_PID_Ki" ).c_str()));
+    control->loadMotor_PID_controller->set_Kd(atof(pr.getData( "loadMotor_PID_Kd" ).c_str()));
+    control->loadMotor_PID_controller->set_I_limit(atof(pr.getData( "loadMotor_PID_I_limit" ).c_str()));
     //MRAC controller
     control->steerwheelMotor_MRAC_controller->set_reference_model(50,1);
-    control->steerwheelMotor_MRAC_controller->set_gamma1(0.3);
-    control->steerwheelMotor_MRAC_controller->set_gamma2(0.3);
-    control->steerwheelMotor_MRAC_controller->set_gamma3(0.00001);
+    control->steerwheelMotor_MRAC_controller->set_gamma1(atof(pr.getData( "steerwheelMotor_MRAC_gamma1" ).c_str()));
+    control->steerwheelMotor_MRAC_controller->set_gamma2(atof(pr.getData( "steerwheelMotor_MRAC_gamma2" ).c_str()));
+    control->steerwheelMotor_MRAC_controller->set_gamma3(atof(pr.getData( "steerwheelMotor_MRAC_gamma3" ).c_str()));
     control->roadwheelMotor_MRAC_controller->set_reference_model(50,1);
-    control->roadwheelMotor_MRAC_controller->set_gamma1(3);
-    control->roadwheelMotor_MRAC_controller->set_gamma2(3);
-    control->roadwheelMotor_MRAC_controller->set_gamma3(0.01);
+    control->roadwheelMotor_MRAC_controller->set_gamma1(atof(pr.getData( "roadwheelMotor_MRAC_gamma1" ).c_str()));
+    control->roadwheelMotor_MRAC_controller->set_gamma2(atof(pr.getData( "roadwheelMotor_MRAC_gamma2" ).c_str()));
+    control->roadwheelMotor_MRAC_controller->set_gamma3(atof(pr.getData( "roadwheelMotor_MRAC_gamma3" ).c_str()));
+    //Clutch Preset
+    control->usr_sine_magnitude = atof(pr.getData( "usr_sine_magnitude" ).c_str());
+    control->usr_sine_w = atof(pr.getData( "usr_sine_w" ).c_str());
+    if (pr.getData("usr_ctrl_clutch") == "true") {control->usr_ctrl_clutch = true;}
+    else if (pr.getData("usr_ctrl_clutch") == "false") {control->usr_ctrl_clutch = false;}
+    else {control->usr_ctrl_clutch = false;}
+
     //function ptr
     active_function_ptr = NULL;
 
     char filename_str[1000] = {0};
     sprintf(filename_str,"rostime_%f.csv",ros::Time::now().toSec());
-    std::cout << filename_str << std::endl;
     fp = fopen(filename_str,"a+");//设置记录文件的路径
     // fprintf(fp,"\n%s\n",ctime(&timep));
     fprintf(fp,"ros_time, steerwheel_angle, roadwheel_angle\n");
 
     char mractest_filename_str[1000] = {0};
     sprintf(mractest_filename_str,"mrac_%f.csv",ros::Time::now().toSec());
-    std::cout << mractest_filename_str << std::endl;
     fp_mrac = fopen(mractest_filename_str,"a+");//设置记录文件的路径
     // fprintf(fp,"\n%s\n",ctime(&timep));
-    fprintf(fp_mrac,"ros_time, r, y, y_dot, theta1, theta2, theta3\n");
+    fprintf(fp_mrac,"ros_time, r, y, y_dot, theta1, theta2, theta3, ym, ym_dot, delta\n");
 
     MainWindow::timeout_reset();
 
@@ -284,16 +328,19 @@ void MainWindow::matlab_connection_test() {
 }
 void MainWindow::developer_mode() {
     double secs =ros::Time::now().toSec();
-    float angle_target = 30*sin(0.5 * secs);
-    float theta1 = control->steerwheelMotor_MRAC_controller->get_theta1();
-    float theta2 = control->steerwheelMotor_MRAC_controller->get_theta2();
-    float theta3 = control->steerwheelMotor_MRAC_controller->get_theta3();
-    control->BLDC0_current = 0;
+    float angle_target = control->usr_sine_magnitude * sin(control->usr_sine_w  * secs);
+    float theta1 = control->roadwheelMotor_MRAC_controller->get_theta1();
+    float theta2 = control->roadwheelMotor_MRAC_controller->get_theta2();
+    float theta3 = control->roadwheelMotor_MRAC_controller->get_theta3();
+    float ym = control->roadwheelMotor_MRAC_controller->get_ym();
+    float ym_dot = control->roadwheelMotor_MRAC_controller->get_ym_dot();
+    control->BLDC1_current = 0;
     // control->BLDC1_current = limitation(control->steerwheelMotor_PID_controller->PID_calculate(angle_target, steerwheel_angle),15);
-    control->BLDC1_current = limitation(control->steerwheelMotor_MRAC_controller->MRAC_calculate(angle_target, steerwheel_angle, steerwheel_anglar_velocity),15);
-    fprintf(fp_mrac,"%f, %f, %f, %f, %f, %f, %f\n", ros::Time::now().toSec(), angle_target, steerwheel_angle, steerwheel_anglar_velocity, theta1, theta2, theta3);
+    control->BLDC0_current = limitation(control->roadwheelMotor_MRAC_controller->MRAC_calculate(angle_target, roadwheel_angle, roadwheel_anglar_velocity),15);
+    float delta = control->roadwheelMotor_MRAC_controller->MRAC_calculate(angle_target, roadwheel_angle, roadwheel_anglar_velocity);
+    fprintf(fp_mrac,"%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", secs, angle_target, roadwheel_angle, roadwheel_anglar_velocity, theta1, theta2, theta3, ym, ym_dot, delta);
     control->loadmotor_voltage = 0;
-    control->clutch_state = false;
+    control->clutch_state = control->usr_ctrl_clutch;
 }
 void MainWindow::joint_simulation_mode() {
     float angle_target = 0;
